@@ -1,6 +1,7 @@
 import getpass, requests
 import os, re, shutil, zipfile
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 # Login and download FreeSurfers based on a list of fs_ids
 
@@ -8,7 +9,7 @@ def login():
     # Set the URL of the webpage
     token_url = 'https://dca.wustl.edu/data/services/tokens/issue'
     # Get password, response, and soup object
-    password = getpass.getpass()
+    password = getpass.getpass("Enter XNAT password: ")
     response = requests.get(token_url, auth=('nvii', password))
     html = response.text
     soup = BeautifulSoup(html, "html.parser")
@@ -42,22 +43,16 @@ def parse_fs(alias, secret, row):
             zip_ref.extractall(path=outdir)
             print("Extracted Folder")
         # Relocate files to present directory
-        os.system(f"cp -r {fs_id}/out/resources/DATA/files/*/ .")
-        print("Extracted FreeSurfer")
-        # Exract the FreeSurfer file and zip it
+        os.system(f"mv -r {fs_id}/out/resources/DATA/files/*/ .")
         all_subdirs = [d for d in os.listdir('.') if os.path.isdir(d)]
         latest_subdir = max(all_subdirs, key=os.path.getmtime)
-        # shutil.make_archive(latest_subdir, 'zip', '.')
-        shutil.make_archive(os.path.join(outdir, latest_subdir.split('.')[0]), 'zip', outdir)
-        print(f"Extracted and zipped {latest_subdir}")
+        print(f"Extracted FreeSurfer {latest_subdir}")
         # Remove extra folders
         os.system(f"rm -rf {fs_id}"); os.system(f"rm -rf {fs_id}.zip")
-        os.system(f"rm -rf {latest_subdir}")
-        print("Leftovers cleaned.")
-
+        print("Cleaned Leftovers")
     else:
         print(f"Failed to download the ZIP file. Status code: {file_response.status_code}")
 
 # Call the parse_fs function with alias, secret, and the list of fs_ids
-for i in fs_id_list:
-    parse_fs(alias, secret, i)
+for line in tqdm(fs_id_list):
+    parse_fs(alias, secret, line)
