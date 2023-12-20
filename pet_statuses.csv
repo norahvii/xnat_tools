@@ -1,0 +1,9 @@
+PET Status,Requires Note,Prompt
+Usable,No,
+MRI Unavailable,No,
+Nonstandard PET Protocol,Yes,Describe what is non-standard about the protocol. Example: Delay time of 95 minutes outside standard processing window.
+PET Scan QC Failure,Yes,Enter a description of why PET scan failed QC based onw hat is in the Manual QC entry. Example: Motion
+Reconstruction Failure,Yes,Describe why the reconstruction failed.
+PUP Pipeline Failure,Yes,"Describe why pipeline failed, cannot finish, etc. This is likely protocol or techncial scan issues."
+Requires MRI Segmentation,Yes,"If Manual ROIs are required, enter ""Manual ROIs"" here. Specify which ones are needed."
+Waiting for PET Scan QC,No,

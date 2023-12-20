@@ -1,0 +1,9 @@
+PET Status,Requires Note,Prompt
+Usable,No,Blank
+1.5T Scanner,Conditional,Blank
+FreeSurfer Pipeline Failure,Conditional,Blank
+FreeSurfer QC Failure,Conditional,Blank
+T1 Scan QC Failure,Conditional,Blank
+T1 Unavailable,Conditional,Blank
+Waiting for MR Scan QC,Yes,Blank
+null,No,Blank
