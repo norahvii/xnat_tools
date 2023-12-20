@@ -1,0 +1,10 @@
+index,tracer_name,desired_static_delay,desired_dynamic_delay,MST,MDT,model_state_if_dynamic,model_state_if_static,static_minimum,static_maximum,dynamic_minimum,dynamic_maximum
+1,PiB_ADRC,30,0,30,30,logan,nonlogan,27,34,0,4
+2,PiB_DIAN,40,0,40,30,logan,nonlogan,37,44,0,4
+3,AV45,50,0,50,20,logan,nonlogan,47,54,0,4
+4,FBB,90,0,90,20,logan,nonlogan,87,94,0,4
+5,FDG,30,0,40,20,nonlogan,nonlogan,27,44,0,4
+6,T807,75,0,80,20,logan,nonlogan,72,84,0,4
+7,MK62,75,0,90,20,logan,nonlogan,72,94,0,4
+8,PiB_WISC,50,0,50,20,logan,nonlogan,47,53,0,4
+9,MK_WISC,70,0,90,20,logan,nonlogan,67,73,0,4
