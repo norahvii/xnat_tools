@@ -43,7 +43,7 @@ def parse_fs(alias, secret, row):
             zip_ref.extractall(path=outdir)
             print("Extracted Folder")
         # Relocate files to present directory
-        os.system(f"mv -r {fs_id}/out/resources/DATA/files/*/ .")
+        os.system(f"mv {fs_id}/out/resources/DATA/files/*/ .")
         all_subdirs = [d for d in os.listdir('.') if os.path.isdir(d)]
         latest_subdir = max(all_subdirs, key=os.path.getmtime)
         print(f"Extracted FreeSurfer {latest_subdir}")
