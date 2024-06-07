@@ -7,7 +7,7 @@ import re, os, shutil, gzip, json
 import datetime, subprocess
 import pandas as pd
 
-
+#############################################################################
 
 # Function to get the password from the user
 def get_password(site):
@@ -202,8 +202,8 @@ if __name__ == "__main__":
 
                     # add the session if it doesn't exist
                     if session.get(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}").status_code != 200:
-                        session_create_url = f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}/fieldStrength={field_strength}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}"
-                        curl_request(session_create_url, cookie_jar, method='PUT')
+                        age_at_session = f"{int(session_number[:3])}.{session_number[-2:]}"
+                        session.put(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}/fieldStrength={field_strength}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}&{xnat_sess_xsi_type}/age={age_at_session}")
                         # add the scan
                         scan_create_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}?xsiType={xnat_scan_xsi_type}&{xnat_scan_xsi_type}/type={series_description}&{xnat_scan_xsi_type}/series_description={series_description}"
                         curl_request(scan_create_url, cookie_jar, method='PUT')
@@ -283,8 +283,8 @@ if __name__ == "__main__":
 
                     # add the session if it doesn't exist
                     if session.get(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}").status_code != 200:
-                        session_create_url = f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}/fieldStrength={field_strength}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}"
-                        curl_request(session_create_url, cookie_jar, method='PUT')
+                        age_at_session = f"{int(session_number[:3])}.{session_number[-2:]}"
+                        session.put(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}/fieldStrength={field_strength}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}&{xnat_sess_xsi_type}/age={age_at_session}")
                         # add the scan
                         scan_create_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}/scans/{scan_id}?xsiType={xnat_scan_xsi_type}&{xnat_scan_xsi_type}/type={modality}&{xnat_scan_xsi_type}/series_description={modality}_{tracer}_{attenuation_correction}"
                         curl_request(scan_create_url, cookie_jar, method='PUT')
@@ -347,3 +347,5 @@ if __name__ == "__main__":
 
         else:
             print(f"Skipped non-JSON file: {full_path}")
+
+#############################################################################
