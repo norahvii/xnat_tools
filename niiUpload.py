@@ -164,7 +164,8 @@ if __name__ == "__main__":
 
                 # Retrieve json content
                 scanner_manufacturer = json_content.get('Manufacturer', '').replace(' ', '%20') if json_content.get('Manufacturer') is not '' or None else 'NA'
-                scanner_model = json_content.get('ManufacturersModelName', '').replace(' ', '%20') if json_content.get('ManufacturersModelName') is not '' or None else 'NA'
+                scanner_model = json_content.get('ManufacturersModelName') or json_content.get('ManufacturerModelName', 'NA') # pain
+                scanner_model = scanner_model.replace(' ', '%20') if scanner_model != 'NA' else 'NA'
                 series_description = json_content.get('SeriesDescription', '').replace(' ', '%20') if json_content.get('SeriesDescription') is not '' or None else 'NA'
                 acquisition_site = json_content.get('InstitutionName', '').replace(' ', '%20') if json_content.get('InstitutionName') is not '' or None else 'NA'
                 session_date = json_content.get('StudyDate', '')
@@ -180,7 +181,7 @@ if __name__ == "__main__":
                     xnat_MRIsession_label = f'{prefix}{subject_number}_{session_tag}_mr'
 
                     # add the subject if it doesn't exist
-                    if session.get(f'https://fornix.wustl.edu/data/projects/{project_id}/subjects/{subject_label}?format=json').status_code != 200:
+                    if session.get(f'{site}/data/projects/{project_id}/subjects/{subject_label}?format=json').status_code != 200:
                         subject_create_url = f"{site}/data/projects/{project_id}/subjects/{subject_label}?src={subject_group}&group={subject_group}"
                         curl_request(subject_create_url, cookie_jar, method='PUT')
 
@@ -195,7 +196,7 @@ if __name__ == "__main__":
                         race = subject_row['race'].values[0]
                         ethnicity = subject_row['ethnicity'].values[0]
                         # Add demographics data
-                        session.put(f'https://fornix.wustl.edu/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
+                        session.put(f'{site}/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
 
                     else:
                         print(f"Subject {subject_label} already exists")
@@ -261,7 +262,7 @@ if __name__ == "__main__":
                     xnat_PETsession_label = f'{prefix}{subject_number}_{session_tag}_{tracer}'
 
                     # add the subject if it doesn't exist        
-                    if session.get(f'https://fornix.wustl.edu/data/projects/{project_id}/subjects/{subject_label}?format=json').status_code != 200:
+                    if session.get(f'{site}/data/projects/{project_id}/subjects/{subject_label}?format=json').status_code != 200:
                         subject_create_url = f"{site}/data/projects/{project_id}/subjects/{subject_label}?src={subject_group}&group={subject_group}"
                         curl_request(subject_create_url, cookie_jar, method='PUT')
 
@@ -276,7 +277,7 @@ if __name__ == "__main__":
                         race = subject_row['race'].values[0]
                         ethnicity = subject_row['ethnicity'].values[0]
                         # Add demographics data
-                        session.put(f'https://fornix.wustl.edu/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
+                        session.put(f'{site}/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
 
                     else:
                         print(f"Subject {subject_label} already exists")
