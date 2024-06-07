@@ -138,8 +138,8 @@ if __name__ == "__main__":
 
     # Get the input CSV
     df = pd.read_csv(args.csv_path)
-    adrc_demographics = pd.read_csv('./demographic_data/all_adrc_demographics.csv')
-    wrap_demographics = pd.read_csv('./demographic_data/all_wrap_demographics.csv')
+    adrc_demographics = pd.read_csv('./demographic_data/all_adrc_demographics.csv', dtype={'subject': str})
+    wrap_demographics = pd.read_csv('./demographic_data/all_wrap_demographics.csv', dtype={'subject': str})
 
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
