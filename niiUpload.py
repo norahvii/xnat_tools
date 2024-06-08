@@ -1,3 +1,4 @@
+############################################################################# - IMPORTS
 import argparse
 from collections import Counter
 import pycurl
@@ -7,8 +8,7 @@ import re, os, shutil, gzip, json
 import datetime, subprocess
 import pandas as pd
 
-#############################################################################
-
+############################################################################# - FUNCTIONS
 # Function to get the password from the user
 def get_password(site):
     return getpass.getpass(f"Enter password for ({site}): ")
@@ -43,27 +43,6 @@ def get_jsession_token(site, username, password):
         curl.close()
         response = buffer.getvalue().decode('utf-8')
     return re.search(r'[A-Za-z0-9]{32}', response).group(0)
-
-
-# Function for adding to the site
-def curl_request(url, cookie_jar, method='GET', file_path=None):
-    buffer = BytesIO()
-    c = pycurl.Curl()
-    c.setopt(c.URL, url)
-    c.setopt(c.COOKIEFILE, cookie_jar)
-    c.setopt(c.WRITEFUNCTION, buffer.write)
-    c.setopt(c.SSL_VERIFYPEER, 0)
-    c.setopt(c.SSL_VERIFYHOST, 0)
-    if method == 'PUT':
-        c.setopt(c.CUSTOMREQUEST, 'PUT')
-        if file_path:
-            c.setopt(c.SSL_VERIFYPEER, 0)
-            c.setopt(c.SSL_VERIFYHOST, 0)
-            c.setopt(c.UPLOAD, 1)
-            c.setopt(c.READDATA, open(file_path, 'rb'))
-    c.perform()
-    c.close()
-    return buffer.getvalue()
 
 
 # Function to upload a file based on the file path and url
@@ -113,8 +92,7 @@ def generate_timing_file(time_frame, time_duration, time_elapsed, nii_dir_name, 
     print(f"Timing file generated: {timing_file_path}")
     return timing_file_path
 
-#############################################################################
-
+############################################################################# - MAIN LOOP
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process CSV and JSON files to generate necessary outputs.")
     parser.add_argument('username', type=str, help='Username for the site')
@@ -124,8 +102,9 @@ if __name__ == "__main__":
     # Load some data for curl authentication
     username = args.username
     site = 'https://fornix.wustl.edu'
-    project = 'NORAH_TEST'
+    project = 'RacialDisparitiesAD'
     project_id = project
+    old_set = 'RacialDisparitiesAD'
     password = get_password(site)
     cookie_jar = start_session(site, username, password)
     jsession_token = get_jsession_token(site, username, password)
@@ -183,21 +162,19 @@ if __name__ == "__main__":
                     # add the subject if it doesn't exist
                     if session.get(f'{site}/data/projects/{project_id}/subjects/{subject_label}?format=json').status_code != 200:
                         subject_create_url = f"{site}/data/projects/{project_id}/subjects/{subject_label}?src={subject_group}&group={subject_group}"
-                        curl_request(subject_create_url, cookie_jar, method='PUT')
+                        session.put(subject_create_url)
+                        # Get demogrpahic data
+                        if prefix == 'wiscwrap_s':
+                            subject_row = wrap_demographics[wrap_demographics['subject'] == f'{subject_number}']
+                        else:
+                            subject_row = adrc_demographics[adrc_demographics['subject'] == f'{subject_number}']
 
-                    # Get demogrpahic data
-                    if prefix == 'wiscwrap_s':
-                        subject_row = wrap_demographics[wrap_demographics['subject'] == f'{subject_number}']
-                    else:
-                        subject_row = adrc_demographics[adrc_demographics['subject'] == f'{subject_number}']
-
-                    if not subject_row.empty:
-                        gender = subject_row['gender'].values[0]
-                        race = subject_row['race'].values[0]
-                        ethnicity = subject_row['ethnicity'].values[0]
-                        # Add demographics data
-                        session.put(f'{site}/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
-
+                        if not subject_row.empty:
+                            gender = subject_row['gender'].values[0]
+                            race = subject_row['race'].values[0]
+                            ethnicity = subject_row['ethnicity'].values[0]
+                            # Add demographics data
+                            session.put(f'{site}/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
                     else:
                         print(f"Subject {subject_label} already exists")
 
@@ -205,21 +182,22 @@ if __name__ == "__main__":
                     if session.get(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}").status_code != 200:
                         age_at_session = f"{int(session_number[:3])}.{session_number[-2:]}"
                         session.put(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}/fieldStrength={field_strength}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}&{xnat_sess_xsi_type}/age={age_at_session}")
-                        # add the scan
+                        
+                    # add the scan if it doesn't exist
+                    if session.get(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}").status_code != 200:
                         scan_create_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}?xsiType={xnat_scan_xsi_type}&{xnat_scan_xsi_type}/type={series_description}&{xnat_scan_xsi_type}/series_description={series_description}"
-                        curl_request(scan_create_url, cookie_jar, method='PUT')
+                        session.put(scan_create_url)
                         # add the resource
                         nii_resource_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}/resources/NIFTI?format=NIFTI&content=NIFTI"
-                        curl_request(nii_resource_url, cookie_jar, method='PUT')
+                        session.put(nii_resource_url)
                         bids_resource_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}/resources/BIDS?format=BIDS&content=BIDS"
-                        curl_request(bids_resource_url, cookie_jar, method='PUT')
+                        session.put(bids_resource_url)
                         # prepare to upload a little
                         json_file_path = full_path
                         json_file_name = os.path.basename(json_file_path)
                         if os.path.exists(json_file_path):
                             json_upload_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}/resources/BIDS/files/{json_file_name}?inbody=true"
                             put_file(json_upload_url, json_file_path, cookie_jar)
-
                         nii_file_name = os.path.basename(full_path).replace('.json', '.nii.gz')
                         nii_file_path = full_path.replace('.json', '.nii.gz')
                         # check if nii file exists
@@ -236,19 +214,16 @@ if __name__ == "__main__":
                                         # try uploading with curl
                                         put_nii(scan_nii_upload_url, unzipped_file_path, cookie_jar)
                                         os.remove(unzipped_file_path) # remove the unzipped file after uploading
-
                         if os.path.exists(nii_file_path.replace('.nii.gz','.bval')):
                             bval_file_name = os.path.basename(nii_file_path.replace('.nii.gz','.bval'))
                             bval_file_path = nii_file_path.replace('.nii.gz','.bval')
                             bval_upload_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}/resources/BIDS/files/{bval_file_name}?inbody=true"
                             put_file(bval_upload_url, bval_file_path, cookie_jar)
-
                         if os.path.exists(nii_file_path.replace('.nii.gz','.bvec')):
                             bvec_file_name = os.path.basename(nii_file_path.replace('.nii.gz','.bvec'))
                             bvec_file_path = nii_file_path.replace('.nii.gz','.bval')
                             bvec_upload_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_MRIsession_label}/scans/{scan_id}/resources/BIDS/files/{bvec_file_name}?inbody=true"
-                            put_file(bvec_upload_url, bvec_file_path, cookie_jar)
-                               
+                            put_file(bvec_upload_url, bvec_file_path, cookie_jar)                  
                     else:
                         print(f"Session {xnat_MRIsession_label} already exists")
 
@@ -264,43 +239,42 @@ if __name__ == "__main__":
                     # add the subject if it doesn't exist        
                     if session.get(f'{site}/data/projects/{project_id}/subjects/{subject_label}?format=json').status_code != 200:
                         subject_create_url = f"{site}/data/projects/{project_id}/subjects/{subject_label}?src={subject_group}&group={subject_group}"
-                        curl_request(subject_create_url, cookie_jar, method='PUT')
+                        session.put(subject_create_url)
+                        # Get demogrpahic data
+                        if prefix == 'wiscwrap_s':
+                            subject_row = wrap_demographics[wrap_demographics['subject'] == f'{subject_number}']
+                        else:
+                            subject_row = adrc_demographics[adrc_demographics['subject'] == f'{subject_number}']
 
-                    # Get demogrpahic data
-                    if prefix == 'wiscwrap_s':
-                        subject_row = wrap_demographics[wrap_demographics['subject'] == f'{subject_number}']
-                    else:
-                        subject_row = adrc_demographics[adrc_demographics['subject'] == f'{subject_number}']
-
-                    if not subject_row.empty:
-                        gender = subject_row['gender'].values[0]
-                        race = subject_row['race'].values[0]
-                        ethnicity = subject_row['ethnicity'].values[0]
-                        # Add demographics data
-                        session.put(f'{site}/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
-
+                        if not subject_row.empty:
+                            gender = subject_row['gender'].values[0]
+                            race = subject_row['race'].values[0]
+                            ethnicity = subject_row['ethnicity'].values[0]
+                            # Add demographics data
+                            session.put(f'{site}/data/archive/projects/{project_id}/subjects/{subject_label}?gender={gender}&race={race}&group={subject_group}&src={subject_group}&ethnicity={ethnicity}')
                     else:
                         print(f"Subject {subject_label} already exists")
 
                     # add the session if it doesn't exist
                     if session.get(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}").status_code != 200:
                         age_at_session = f"{int(session_number[:3])}.{session_number[-2:]}"
-                        session.put(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}/fieldStrength={field_strength}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}&{xnat_sess_xsi_type}/age={age_at_session}")
-                        # add the scan
+                        session.put(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}?xsiType={xnat_sess_xsi_type}&date={session_date}&{xnat_sess_xsi_type}&modality={modality}&{xnat_sess_xsi_type}/scanner/manufacturer={scanner_manufacturer}&{xnat_sess_xsi_type}/scanner/model={scanner_model}&{xnat_sess_xsi_type}/acquisition_site={subject_group}&{xnat_sess_xsi_type}/age={age_at_session}")
+                    
+                    # add the scan if it doesn't exist
+                    if session.get(f"{site}/data/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}/scans/{scan_id}").status_code != 200:
                         scan_create_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}/scans/{scan_id}?xsiType={xnat_scan_xsi_type}&{xnat_scan_xsi_type}/type={modality}&{xnat_scan_xsi_type}/series_description={modality}_{tracer}_{attenuation_correction}"
-                        curl_request(scan_create_url, cookie_jar, method='PUT')
+                        session.put(scan_create_url)
                         # add the resource
                         nii_resource_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}/scans/{scan_id}/resources/NIFTI?format=NIFTI&content=NIFTI"
-                        curl_request(nii_resource_url, cookie_jar, method='PUT')
+                        session.put(nii_resource_url)
                         bids_resource_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}/scans/{scan_id}/resources/BIDS?format=BIDS&content=BIDS"
-                        curl_request(bids_resource_url, cookie_jar, method='PUT')
+                        session.put(bids_resource_url)
                         # prepare to upload a little
                         json_file_path = full_path
                         json_file_name = os.path.basename(json_file_path)
                         if os.path.exists(json_file_path):
                             json_upload_url = f"{site}/data/archive/projects/{project_id}/subjects/{subject_label}/experiments/{xnat_PETsession_label}/scans/{scan_id}/resources/BIDS/files/{json_file_name}?inbody=true"
                             put_file(json_upload_url, json_file_path, cookie_jar)
-
                         nii_file_name = os.path.basename(full_path).replace('.json', '.nii.gz')
                         nii_file_path = full_path.replace('.json', '.nii.gz')
                         # check if nii file exists
@@ -317,7 +291,6 @@ if __name__ == "__main__":
                                         # try uploading with curl
                                         put_nii(scan_nii_upload_url, unzipped_file_path, cookie_jar)
                                         os.remove(unzipped_file_path) # remove the unzipped file after uploading
-
                             # prepare to upload the timing file
                             nii_dir_name = os.path.dirname(nii_file_path)
                             # make our columns
@@ -331,7 +304,6 @@ if __name__ == "__main__":
                             # try uploading with curl 
                             put_file(timing_file_url, timing_file_path, cookie_jar)
                             os.remove(timing_file_path) # remove the timing file after uploading
-
                         # get our injection times
                         scan_start = json_content.get('ScanStart','')
                         injection_start = json_content.get('InjectionStart','')
@@ -345,8 +317,5 @@ if __name__ == "__main__":
 
             except json.JSONDecodeError:
                 print(f"Error reading JSON file: {full_path}")
-
         else:
             print(f"Skipped non-JSON file: {full_path}")
-
-#############################################################################
